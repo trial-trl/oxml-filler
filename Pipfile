@@ -8,6 +8,7 @@ env = "sh scripts/dev/env/load.sh"
 install = "sh scripts/install.sh"
 
 [packages]
+python-docx-ng = "*"
 
 [dev-packages]
 

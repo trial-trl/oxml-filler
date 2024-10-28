@@ -1,0 +1,21 @@
+{
+  "recommendations": [
+    "streetsidesoftware.code-spell-checker",
+    "ms-vscode-remote.remote-containers",
+    "ms-azuretools.vscode-docker",
+    "ms-python.python",
+    "mikestead.dotenv",
+    "editorconfig.editorconfig",
+    "jeremyjeanson.locust-extension",
+    "mhutchie.git-graph",
+    "visualstudioexptteam.vscodeintellicode",
+    "visualstudioexptteam.intellicode-api-usage-examples",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    "christian-kohler.npm-intellisense",
+    "johnpapa.vscode-peacock",
+    "rebornix.project-snippets",
+    "ms-ceintl.vscode-language-pack-pt-br",
+    "ms-vscode-remote.remote-wsl",
+  ]
+}
