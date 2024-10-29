@@ -11,6 +11,8 @@ from docx.oxml.text.run import CT_R
 from docx.oxml.table import CT_Row, CT_Tc
 from docx.oxml.ns import nsmap, qn
 
+from _str_decoder import decode_escapes
+
 nsmap['w15'] = "http://schemas.microsoft.com/office/word/2012/wordml"
 
 
@@ -60,7 +62,7 @@ class PropValueParser:
         if (self.options.suffix):
             _val = str(_val) + str(self.options.suffix)
 
-        return str(_val)
+        return decode_escapes(str(_val))
 
 
 def find_dropdown_pr(element):
