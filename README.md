@@ -18,6 +18,8 @@ primarily to **fill** `Content Control` **forms**
 
 `pipenv run install [package]...` - Install package in this project
 
+`pipenv run build` - Compile project into executable
+
 ## Support for multiple environment files
 
 In this project, you can run as many environments as desired!

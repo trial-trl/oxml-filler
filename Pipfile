@@ -6,11 +6,13 @@ name = "pypi"
 [scripts]
 env = "sh scripts/dev/env/load.sh"
 install = "sh scripts/install.sh"
+build = "sh scripts/build.sh"
 
 [packages]
 python-docx-ng = "*"
 
 [dev-packages]
+nuitka = "*"
 
 [requires]
 python_version = "3.11"
