@@ -21,6 +21,7 @@ class FieldOptions:
     format: str | None = None
     prefix: str | None = None
     suffix: str | None = None
+    skipIfEmpty: bool | None = None
 
     def __init__(self, map_to: str):
         self.map_to = map_to
@@ -36,6 +37,8 @@ class FieldOptions:
             fieldOptions.prefix = json['prefix']
         if ('suffix' in json):
             fieldOptions.prefix = json['suffix']
+        if ('skipIfEmpty' in json):
+            fieldOptions.skipIfEmpty = json['skipIfEmpty']
         return fieldOptions
 
     @staticmethod
@@ -63,6 +66,9 @@ class PropValueParser:
             _val = str(_val) + str(self.options.suffix)
 
         return decode_escapes(str(_val))
+    
+    def canFill(self, value):
+        return not self.options.skipIfEmpty or not (value is None or value == "" or value == 0)
 
 
 def find_dropdown_pr(element):
@@ -152,6 +158,9 @@ def create_document(template_path: str, data={}, field_mapping: dict[str, FieldO
     for field in field_mapping:
         field_options = get_field_options(field)
         value_parser = PropValueParser(field_options)
+        
+        if not value_parser.canFill(get_prop_value_for_field(field)):
+            continue
 
         form_field_tag = document.element.xpath(
             f'//w:tag[@w:val="{field}"]')[0]
