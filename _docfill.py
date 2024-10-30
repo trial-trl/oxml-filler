@@ -94,7 +94,7 @@ def map_dropdown(dropdown_element: list[ElementBase]):
     return possible_values
 
 
-def map_row_to_std(row, std: ElementBase):
+def map_row_to_std(row, std: ElementBase, value_parser: PropValueParser):
     is_list = isinstance(row, list)
 
     pr: ElementBase = list(std)[0]
@@ -113,7 +113,7 @@ def map_row_to_std(row, std: ElementBase):
             run = get_first_paragraph_run_and_remove_others(cell)
 
             if (is_list):
-                run.text = row[index]
+                run.text = value_parser.parse(row[index])
 
 
 def get_first_run_and_remove_others(element):
@@ -176,7 +176,7 @@ def create_document(template_path: str, data={}, field_mapping: dict[str, FieldO
                 clone_section = deepcopy(clone_base_section)
                 id = clone_section.xpath('//w:sdtPr/w:id', namespaces=nsmap)[0]
                 id.getparent().remove(id)
-                map_row_to_std(row, clone_section)
+                map_row_to_std(row, clone_section, value_parser)
                 form_field_sdtContent.append(clone_section)
 
             continue
