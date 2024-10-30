@@ -156,14 +156,11 @@ def create_document(template_path: str, data={}, field_mapping: dict[str, FieldO
         form_field_tag = document.element.xpath(
             f'//w:tag[@w:val="{field}"]')[0]
         form_field_pr: ElementBase = form_field_tag.getparent()
-        form_field_sdt: ElementBase = form_field_pr.getparent()
         form_field_sdtContent: ElementBase = form_field_pr.getnext()
 
         dropdown_pr = find_dropdown_pr(form_field_pr)
-        text_pr = find_text_pr(form_field_pr)
         repeating_section_pr = find_repeating_section_pr(form_field_pr)
 
-        is_text = text_pr is not None
         is_dropdown = dropdown_pr is not None
         is_repeating_section = repeating_section_pr is not None
 
@@ -181,33 +178,33 @@ def create_document(template_path: str, data={}, field_mapping: dict[str, FieldO
 
             continue
 
-        if (is_text):
-            prop_value = get_prop_value_for_field(field)
-            run: CT_R = None
-
-            for child in form_field_sdtContent:
-                if (isinstance(child, CT_R)):
-                    run = child
-                    break
-                if (isinstance(child, CT_P)):
-                    run = get_first_run_and_remove_others(child)
-                    break
-
-            remove_other_than_first(
-                list(form_field_sdtContent), form_field_sdtContent)
-
-            if (run is None):
-                str.exit(f"'{field}' not have 'w:p' or 'w:r' in 'sdtContent'")
-
-            run.text = value_parser.parse(prop_value)
-            continue
-
         if (is_dropdown):
             prop_value = str(get_prop_value_for_field(field))
             possible_values = map_dropdown(dropdown_pr)
             dropdown_t = find_wt(form_field_sdtContent, False)
             dropdown_t.text = possible_values[prop_value]
             continue
+
+        """ Unidentified content controls are handled as text by default """
+
+        prop_value = get_prop_value_for_field(field)
+        run: CT_R = None
+
+        for child in form_field_sdtContent:
+            if (isinstance(child, CT_R)):
+                run = child
+                break
+            if (isinstance(child, CT_P)):
+                run = get_first_run_and_remove_others(child)
+                break
+
+        remove_other_than_first(
+            list(form_field_sdtContent), form_field_sdtContent)
+
+        if (run is None):
+            str.exit(f"'{field}' not have 'w:p' or 'w:r' in 'sdtContent'")
+
+        run.text = value_parser.parse(prop_value)
 
     file_suffix = f'{str(time.time()).replace(".", "_")}{os.path.splitext(template_path)[1]}'
 
