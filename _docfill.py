@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 import time
 import docx
@@ -21,6 +22,7 @@ class FieldOptions:
     format: str | None = None
     prefix: str | None = None
     suffix: str | None = None
+    default: str | None = None
     skipIfEmpty: bool | None = None
 
     def __init__(self, map_to: str):
@@ -39,6 +41,8 @@ class FieldOptions:
             fieldOptions.suffix = json['suffix']
         if ('skipIfEmpty' in json):
             fieldOptions.skipIfEmpty = json['skipIfEmpty']
+        if ('default' in json):
+            fieldOptions.default = json['default']
         return fieldOptions
 
     @staticmethod
@@ -54,6 +58,9 @@ class PropValueParser:
 
     def parse(self, value):
         _val = value
+
+        if ((value is None or value == "" or value == 0) and self.options.default):
+            _val = str(self.options.default)
 
         if (self.options.format == 'currency'):
             locale.setlocale(locale.LC_ALL, 'pt_BR')
