@@ -36,7 +36,7 @@ class FieldOptions:
         if ('prefix' in json):
             fieldOptions.prefix = json['prefix']
         if ('suffix' in json):
-            fieldOptions.prefix = json['suffix']
+            fieldOptions.suffix = json['suffix']
         if ('skipIfEmpty' in json):
             fieldOptions.skipIfEmpty = json['skipIfEmpty']
         return fieldOptions
