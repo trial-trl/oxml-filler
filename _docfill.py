@@ -4,6 +4,7 @@ import tempfile
 import time
 import docx
 import locale
+from typing import SupportsIndex
 from copy import deepcopy
 from lxml.etree import ElementBase
 from docx.document import Document
@@ -17,12 +18,26 @@ from _str_decoder import decode_escapes
 nsmap['w15'] = "http://schemas.microsoft.com/office/word/2012/wordml"
 
 
+class StringPadOptions:
+    width: SupportsIndex
+    fillchar: str
+
+    def __init__(self, declaration: str):
+        width_fillchar = declaration.split(",")
+        self.width = int(width_fillchar[0])
+        try:
+            self.fillchar = str(width_fillchar[1])
+        except IndexError:
+            self.fillchar = " "
+
 class FieldOptions:
     map_to: str
     format: str | None = None
     prefix: str | None = None
     suffix: str | None = None
     default: str | None = None
+    padLeft: StringPadOptions | None = None
+    padRight: StringPadOptions | None = None
     skipIfEmpty: bool | None = None
 
     def __init__(self, map_to: str):
@@ -43,6 +58,10 @@ class FieldOptions:
             fieldOptions.skipIfEmpty = json['skipIfEmpty']
         if ('default' in json):
             fieldOptions.default = json['default']
+        if ('padLeft' in json):
+            fieldOptions.padLeft = StringPadOptions(json['padLeft'])
+        if ('padRight' in json):
+            fieldOptions.padRight = StringPadOptions(json['padRight'])
         return fieldOptions
 
     @staticmethod
@@ -65,6 +84,18 @@ class PropValueParser:
         if (self.options.format == 'currency'):
             locale.setlocale(locale.LC_ALL, 'pt_BR')
             _val = locale.format_string('%.2f', value, True)
+
+        if (self.options.padLeft):
+            _val = str(_val).rjust(
+                self.options.padLeft.width,
+                self.options.padLeft.fillchar
+            )
+
+        if (self.options.padRight):
+            _val = str(_val).ljust(
+                self.options.padRight.width,
+                self.options.padRight.fillchar
+            )
 
         if (self.options.prefix):
             _val = str(self.options.prefix) + str(_val)
