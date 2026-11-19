@@ -5,11 +5,11 @@ primarily to **fill** `Content Control` **forms**
 
 ## Requirements
 
-- [python >= 3](https://www.python.org/)
+- [python 3.12](https://www.python.org/) and [pipenv](https://pipenv.pypa.io/)
 
 ### Kickstart
 
-- Install dependencies with `pipenv install`
+- Install dependencies with `pipenv install --dev`
 - Create `.env` file, based on `.env.example`
 
 ## Available commands
@@ -18,7 +18,11 @@ primarily to **fill** `Content Control` **forms**
 
 `pipenv run install [package]...` - Install package in this project
 
-`pipenv run build` - Compile project into executable
+`pipenv run build` - Compile project into a single executable with PyInstaller (`dist/oxml-filler`, `.exe` on Windows)
+
+`pipenv run test` - Run the tests
+
+The command line options, the JSON output and the exit codes are described in [DOC.md](DOC.md)
 
 ## Support for multiple environment files
 

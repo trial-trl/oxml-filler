@@ -7,12 +7,18 @@ name = "pypi"
 env = "sh scripts/dev/env/load.sh"
 install = "sh scripts/install.sh"
 build = "sh scripts/build.sh"
+test = "pytest"
 
 [packages]
 python-docx-ng = "*"
 
 [dev-packages]
-nuitka = "*"
+pyinstaller = "*"
+pytest = "*"
+# windows-only dependencies of pyinstaller and pytest, which a lock made on linux would drop
+pefile = {version = "*", markers = "sys_platform == 'win32'"}
+pywin32-ctypes = {version = "*", markers = "sys_platform == 'win32'"}
+colorama = {version = "*", markers = "sys_platform == 'win32'"}
 
 [requires]
-python_version = "3.11"
+python_version = "3.12"
