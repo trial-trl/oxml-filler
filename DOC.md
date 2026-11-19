@@ -86,6 +86,18 @@ The built program processes a printing document. It receives input data in JSON 
 
 - **Description:** Prints the version of the filler. `--input` is accepted and ignored.
 
+## Embedded runtime
+
+Inside an app (`serious_python`), `main.py` reads a JSON request from the file in `OXML_FILLER_REQUEST` and writes
+the answer, the same JSON of `--json`, to the file in `OXML_FILLER_RESPONSE` (written aside and renamed, so it
+never appears half written). Requests:
+
+| Request | Fields |
+| --- | --- |
+| `{"mode": "version"}` | answered without loading the engine, to probe the runtime |
+| `{"mode": "describe", "template": "<path>"}` | |
+| `{"mode": "fill", "template": "<path>", "data": {...}, "mapping": {...}, "output": "<path>"}` | |
+
 ### `--json` and `--quiet`
 
 - **Description:** `--json` prints the result as JSON in the **last line** of the output; `--quiet` hides the
@@ -95,7 +107,7 @@ The built program processes a printing document. It receives input data in JSON 
   | --- | --- |
   | Fill | `{"ok": true, "fields": 15, "output": "<path>"}` (`fields`: how many fields were filled) |
   | `--describe` | `{"ok": true, "fields": [...]}` |
-  | `--version` | `{"ok": true, "version": "1.1.0"}` |
+  | `--version` | `{"ok": true, "version": "1.1.0", "protocol": 1}` (`protocol` changes when a request or an answer changes) |
   | Error | `{"ok": false, "error": "<readable message>"}` |
 
 ## Exit codes

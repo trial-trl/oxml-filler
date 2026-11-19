@@ -72,3 +72,21 @@ class TestMain:
 
         assert process.returncode == 0
         assert process.stdout == b''
+
+
+class TestVersion:
+    def test_answers_the_version_and_the_protocol(self):
+        assert handle({'mode': 'version'}) == {'ok': True, 'version': '1.1.0', 'protocol': 1}
+
+    def test_answers_without_the_engine(self):
+        # the app probes the runtime with `version` even when lxml can't load in its process
+        code = ("import sys, json; sys.modules['docx'] = None; sys.modules['lxml'] = None; "
+                "from app_entry import handle; print(json.dumps(handle({'mode': 'version'})))")
+        process = subprocess.run([sys.executable, '-c', code], cwd=ROOT, capture_output=True)
+
+        assert json.loads(process.stdout) == {'ok': True, 'version': '1.1.0', 'protocol': 1}
+
+    def test_answers_the_version_through_the_response_file(self, tmp_path):
+        process, response = run_main(tmp_path, {'mode': 'version'})
+
+        assert json.loads(response.read_text(encoding='utf-8'))['version'] == '1.1.0'

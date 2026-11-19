@@ -6,7 +6,7 @@ import sys
 import json
 from time import sleep
 
-from _version import __version__
+from _version import describe_version
 
 EXIT_OK = 0
 EXIT_USAGE = 1
@@ -156,10 +156,11 @@ def fill(args, quiet: bool) -> dict:
 
 
 def run(args) -> dict:
-    from _docfill import FillerError, TemplateError
-
     if (args.version):
-        return {"ok": True, "version": __version__}
+        """ answered without loading the engine """
+        return describe_version()
+
+    from _docfill import FillerError, TemplateError
 
     quiet = args.quiet
 

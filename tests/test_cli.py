@@ -111,7 +111,16 @@ class TestVersion:
         process = cli(*args)
 
         assert process.returncode == 0
-        assert last_json(process) == {'ok': True, 'version': '1.1.0'}
+        assert last_json(process) == {'ok': True, 'version': '1.1.0', 'protocol': 1}
 
     def test_prints_the_version(self):
         assert cli('--version').stdout.decode('utf-8').strip() == '1.1.0'
+
+
+def test_answers_the_version_without_the_engine():
+    code = ("import sys; sys.modules['docx'] = None; sys.modules['lxml'] = None; sys.argv = ['x', '--version', '--json']; "
+            "import runpy; runpy.run_path('index.py', run_name='__main__')")
+    process = subprocess.run([sys.executable, '-c', code], cwd=ROOT, capture_output=True)
+
+    assert process.returncode == 0
+    assert last_json(process)['version'] == '1.1.0'

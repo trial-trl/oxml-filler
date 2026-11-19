@@ -1,6 +1,13 @@
 """ Requests of the embedded runtime (serious_python), answered like the `--json` of the command line """
 
 
+def version(payload: dict) -> dict:
+    """ Answered without loading the engine (lxml, python-docx), so the app can probe the runtime """
+    from _version import describe_version
+
+    return describe_version()
+
+
 def fill(payload: dict) -> dict:
     from _docfill import DataError, fill_template, parse_field_mapping
 
@@ -24,13 +31,14 @@ def describe(payload: dict) -> dict:
 
 
 handlers = {
+    "version": version,
     "fill": fill,
     "describe": describe,
 }
 
 
 def handle(payload: dict) -> dict:
-    """ Answer a request (`mode`: `fill` or `describe`); errors come back as `{"ok": false, "error": ...}` """
+    """ Answer a request (`mode`: `version`, `fill` or `describe`); errors come back as `{"ok": false, "error": ...}` """
     try:
         if (not isinstance(payload, dict)):
             return {"ok": False, "error": "O pedido precisa ser um objeto JSON"}
