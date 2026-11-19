@@ -145,3 +145,20 @@ class TestMapping:
     def test_rejects_options_without_map_to(self):
         with pytest.raises(DataError):
             parse_field_mapping({'clientname': {'prefix': '#'}}, DATA)
+
+
+class TestMacroEnabled:
+    def test_describes_and_fills_a_docm_keeping_its_type(self, tmp_path):
+        import zipfile
+        from template import MACRO_ENABLED_TYPE, build_template
+
+        template = build_template(str(tmp_path / 'cupom.docm'))
+        assert len(describe_fields(template)) == 6
+
+        field_mapping = parse_field_mapping(MAPPING, DATA)
+        output, filled = fill_template(template, DATA, field_mapping, output_path(tmp_path, 'saida.docm'), False)
+
+        assert filled == 6
+        with zipfile.ZipFile(output) as package:
+            assert MACRO_ENABLED_TYPE in package.read('[Content_Types].xml').decode()
+        assert tag_text(output, 'clientname') == 'João da Silva'

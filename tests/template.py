@@ -1,5 +1,7 @@
 """ Synthetic template with the content control shapes of the real coupon (`Impressão POS 58mm v2.docm`) """
 
+import zipfile
+
 import docx
 from docx.oxml import parse_xml
 
@@ -56,10 +58,27 @@ NOTES = f'''<w:sdt {NS}><w:sdtPr><w:id w:val="8"/><w:tag w:val="notes"/></w:sdtP
 TAGS = ['clientname', 'total', 'payment_method', 'order_items', 'return_change', 'notes']
 
 
+DOCUMENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml'
+MACRO_ENABLED_TYPE = 'application/vnd.ms-word.document.macroEnabled.main+xml'
+
+
 def build_template(path: str) -> str:
+    """ `.docm` paths get the content type of a macro-enabled document, like the real coupon """
     document = docx.Document()
     body = document.element.body
     for xml in [CLIENT_NAME, TOTAL, PAYMENT_METHOD, ORDER_ITEMS, RETURN_CHANGE, NOTES]:
         body.insert(len(body) - 1, parse_xml(xml))
     document.save(path)
+    if (path.endswith('.docm')):
+        _mark_macro_enabled(path)
     return path
+
+
+def _mark_macro_enabled(path: str):
+    with zipfile.ZipFile(path) as source:
+        entries = [(item, source.read(item.filename)) for item in source.infolist()]
+    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as target:
+        for item, content in entries:
+            if (item.filename == '[Content_Types].xml'):
+                content = content.replace(DOCUMENT_TYPE.encode(), MACRO_ENABLED_TYPE.encode())
+            target.writestr(item, content)
