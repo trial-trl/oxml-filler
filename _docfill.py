@@ -4,7 +4,6 @@ import zipfile
 import tempfile
 import time
 import docx
-import locale
 from typing import SupportsIndex
 from copy import deepcopy
 from lxml.etree import ElementBase
@@ -87,6 +86,20 @@ class FieldOptions:
         return FieldOptions(map_to)
 
 
+def format_currency(value, fallback=None) -> str:
+    """
+    Money in pt-BR (`1.234,50`) without `locale.setlocale`, which only works where the locale is installed
+    (it broke on Linux and would break on mobile); same output as the pt_BR locale on Windows
+    """
+    for candidate in (value, fallback):
+        try:
+            number = float(candidate)
+        except (TypeError, ValueError):
+            continue
+        return f'{number:,.2f}'.replace(',', '_').replace('.', ',').replace('_', '.')
+    return str(fallback if fallback is not None else value)
+
+
 class PropValueParser:
     options: FieldOptions
 
@@ -100,8 +113,7 @@ class PropValueParser:
             _val = str(self.options.default)
 
         if (self.options.format == 'currency'):
-            locale.setlocale(locale.LC_ALL, 'pt_BR')
-            _val = locale.format_string('%.2f', value, True)
+            _val = format_currency(value, _val)
 
         if (self.options.padLeft):
             _val = str(_val).rjust(
