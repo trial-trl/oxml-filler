@@ -6,102 +6,99 @@ import sys
 import json
 from time import sleep
 
-from _docfill import FieldOptions, create_document
+from _version import __version__
 
-template_input_path: str = None
-data = {}
-field_mapping: dict[str, FieldOptions] = {}
-
-arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument(
-    "--input", "-i", help="path to template document", type=str)
-arg_parser.add_argument(
-    "--data", "-d", help="data to fill template document", type=str)
-arg_parser.add_argument("--field_mapping", "-m",
-                        help="a map of form fields to be replaced in template document x data property to receive", type=str)
-arg_parser.add_argument("--output", "-o", help="path to output file", type=str)
-arg_parser.add_argument("--open",  help="automatically open the output file; default is True",
-                        type=bool, default=True, action=argparse.BooleanOptionalAction)
-arg_parser.add_argument("--temp", help="mark output file as temporary in disk; default is True (only works if 'open' is True)",
-                        type=bool, default=True, action=argparse.BooleanOptionalAction)
-args = arg_parser.parse_args()
+EXIT_OK = 0
+EXIT_USAGE = 1
+EXIT_TEMPLATE = 2
 
 
-def is_json(string: str, allow_simple: bool = False) -> bool:
-    """
-    Return True if the given string is in valid JSON format, else return False.
-
-    Example usage
-    -------------
-    >>> is_json("1")       # False because this is a simple data structure (int)
-    False
-
-    >>> is_json("1", True) # return True because this is a valid JSON string
-    True
-
-    :param string:
-    :param allow_simple: bool; If true allows simple data structure
-    :return: bool
-    """
-    try:
-        valid_json = json.loads(string)
-        if allow_simple is False and type(valid_json) in [int, str, float, bool]:
-            return False
-    except ValueError:
-        return False
-    return True
+class UsageError(Exception):
+    exit_code = EXIT_USAGE
 
 
-def parse_data():
-    global data
-    if (is_json(args.data) is False):
-        sys.exit("'data' must be a valid JSON")
-    data = json.loads(args.data)
+class ArgumentParser(argparse.ArgumentParser):
+    """ argparse exits with 2 on bad usage, which here means a template error """
+
+    def error(self, message):
+        raise UsageError(message)
 
 
-def parse_field_mapping():
-    global field_mapping
-    if (is_json(args.field_mapping) is False):
-        sys.exit("'field_mapping' must be a valid JSON")
-    field_mapping_raw = json.loads(args.field_mapping)
-    for field in field_mapping_raw:
-        options = FieldOptions.from_json(field_mapping_raw[field]) if (
-            isinstance(field_mapping_raw[field], str) is False or is_json(field_mapping_raw[field])) else FieldOptions.only_map(field_mapping_raw[field])
-        if (options.map_to not in data):
-            sys.exit(
-                f"'{field}' maps to '{options.map_to}' which doesn't exist in 'data'")
-        field_mapping[field] = options
+def create_arg_parser():
+    arg_parser = ArgumentParser(prog="oxml-filler")
+    arg_parser.add_argument(
+        "--input", "-i", help="path to template document", type=str)
+    arg_parser.add_argument(
+        "--data", "-d", help="data to fill template document", type=str)
+    arg_parser.add_argument(
+        "--data-file", help="path to a JSON file with the data to fill template document (UTF-8)", type=str)
+    arg_parser.add_argument("--field_mapping", "--field-mapping", "-m", dest="field_mapping",
+                            help="a map of form fields to be replaced in template document x data property to receive", type=str)
+    arg_parser.add_argument(
+        "--field-mapping-file", help="path to a JSON file with the field mapping (UTF-8)", type=str)
+    arg_parser.add_argument("--output", "-o", help="path to output file", type=str)
+    arg_parser.add_argument("--open",  help="automatically open the output file; default is True",
+                            type=bool, default=True, action=argparse.BooleanOptionalAction)
+    arg_parser.add_argument("--temp", help="mark output file as temporary in disk; default is True (only works if 'open' is True)",
+                            type=bool, default=True, action=argparse.BooleanOptionalAction)
+    arg_parser.add_argument("--describe", help="list the content controls of the template instead of filling it",
+                            action="store_true")
+    arg_parser.add_argument("--version", help="print the version of the filler", action="store_true")
+    arg_parser.add_argument("--json", help="print the result as JSON in the last line of the output",
+                            action="store_true")
+    arg_parser.add_argument("--quiet", help="don't print progress messages", action="store_true")
+    return arg_parser
 
 
-def delete_output(path: str):
+def configure_output():
+    """ accents must survive the pipe to the caller, whatever the console encoding is """
+    for stream in (sys.stdout, sys.stderr):
+        if (hasattr(stream, "reconfigure")):
+            stream.reconfigure(encoding="utf-8")
+
+
+def read_json(value: str, file: str, name: str):
+    from _docfill import DataError, is_json
+
+    content = value
+
+    if (file):
+        try:
+            with open(file, encoding="utf-8-sig") as json_file:
+                content = json_file.read()
+        except OSError:
+            raise DataError(f"Não foi possível ler o arquivo de {name}: {file}")
+
+    if (content is None):
+        raise UsageError(f"Informe '{name}' (--{name} ou --{name}-file)")
+
+    if (is_json(content) is False):
+        raise DataError(f"'{name}' must be a valid JSON")
+
+    return json.loads(content)
+
+
+def delete_output(path: str, quiet: bool):
     try:
         if (os.path.isfile(path)):
             os.remove(path)
     except OSError as e:
         """ keep trying to delete the output file """
-        if (e.winerror == 32):
-            print('Output file is still in use. Waiting to close...')
+        if (getattr(e, "winerror", None) == 32):
+            log('Output file is still in use. Waiting to close...', quiet)
         else:
-            print(e)
+            log(str(e), quiet)
         sleep(5)
-        delete_output(path)
+        delete_output(path, quiet)
 
 
-parse_data()
-parse_field_mapping()
+def log(message: str, quiet: bool):
+    if (not quiet):
+        print(message)
 
-template_input_path = args.input
-output_path = args.output
-open = args.open
-temp = args.temp
 
-output_path = create_document(
-    template_input_path, data, field_mapping, output_path, temp and open)
-
-print(f"Output file created in '{output_path}'")
-
-if (open):
-    print(f"Auto-opening the output file...")
+def open_output(output_path: str, temp: bool, quiet: bool):
+    log("Auto-opening the output file...", quiet)
 
     current_os = platform.system()
 
@@ -110,15 +107,103 @@ if (open):
     else:
         subprocess.check_output(f'"{output_path}"', shell=True)
 
-    print(f"Output file opened.")
+    log("Output file opened.", quiet)
 
     if (temp):
-        print(f"Output file was marked as temporary, so it will self-destroy after closed. Waiting to close...")
+        log("Output file was marked as temporary, so it will self-destroy after closed. Waiting to close...", quiet)
 
         sleep(10)
 
-        delete_output(output_path)
+        delete_output(output_path, quiet)
 
-        print(f"Output file closed.")
+        log("Output file closed.", quiet)
 
-        print(f"Output file was destroyed.")
+        log("Output file was destroyed.", quiet)
+
+
+def describe(args) -> dict:
+    from _docfill import describe_fields
+
+    if (not args.input):
+        raise UsageError("Informe o template com --input")
+
+    return {"ok": True, "fields": describe_fields(args.input)}
+
+
+def fill(args, quiet: bool) -> dict:
+    from _docfill import DataError, fill_template, parse_field_mapping
+
+    if (not args.input):
+        raise UsageError("Informe o template com --input")
+
+    data = read_json(args.data, args.data_file, "data")
+
+    if (not isinstance(data, dict)):
+        raise DataError("'data' must be a JSON object")
+
+    field_mapping = parse_field_mapping(
+        read_json(args.field_mapping, args.field_mapping_file, "field_mapping"), data)
+
+    output_path, filled = fill_template(
+        args.input, data, field_mapping, args.output, args.temp and args.open)
+
+    log(f"Output file created in '{output_path}'", quiet)
+
+    if (args.open):
+        open_output(output_path, args.temp, quiet)
+
+    return {"ok": True, "fields": filled, "output": output_path}
+
+
+def run(args) -> dict:
+    from _docfill import FillerError, TemplateError
+
+    if (args.version):
+        return {"ok": True, "version": __version__}
+
+    quiet = args.quiet
+
+    try:
+        if (args.describe):
+            return describe(args)
+        return fill(args, quiet)
+    except (FillerError, UsageError):
+        raise
+    except Exception as error:
+        """ anything else broke while reading or writing the document """
+        raise TemplateError(f"Não foi possível processar o template: {error}")
+
+
+def print_result(args, result: dict):
+    if (args.json):
+        print(json.dumps(result, ensure_ascii=False))
+    elif (args.version):
+        print(result["version"])
+    elif (args.describe):
+        print(json.dumps(result["fields"], ensure_ascii=False, indent=2))
+
+
+def main(argv: list[str] = None) -> int:
+    configure_output()
+
+    argv = sys.argv[1:] if argv is None else argv
+    as_json = "--json" in argv
+
+    try:
+        args = create_arg_parser().parse_args(argv)
+        result = run(args)
+    except Exception as error:
+        exit_code = getattr(error, "exit_code", EXIT_USAGE)
+        if (as_json):
+            print(json.dumps({"ok": False, "error": str(error)}, ensure_ascii=False))
+        else:
+            print(str(error), file=sys.stderr)
+        return exit_code
+
+    print_result(args, result)
+
+    return EXIT_OK
+
+
+if __name__ == "__main__":
+    sys.exit(main())
